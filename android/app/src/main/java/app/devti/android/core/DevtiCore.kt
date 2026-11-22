@@ -11,6 +11,7 @@ import android.os.BatteryManager
 import android.os.Build
 import android.provider.Settings
 import app.devti.android.BuildConfig
+import app.devti.android.core.state.ClipboardEntry
 import app.devti.android.core.state.CoreState
 import app.devti.android.core.state.PairingStage
 import app.devti.android.core.state.Reducer
@@ -75,8 +76,8 @@ class DevtiCore(private val context: Context) : EventListener {
 
     fun refresh() {
         val n = node ?: return
-        val pairing = _state.value.pairing
-        _state.value = Reducer.snapshot(n.localJson(), n.peersJson(), n.nearbyJson()).copy(pairing = pairing)
+        val snapshot = Reducer.snapshot(n.localJson(), n.peersJson(), n.nearbyJson())
+        _state.update { snapshot.copy(pairing = it.pairing, clipboardRevision = it.clipboardRevision + 1) }
     }
 
     override fun onEvent(eventJson: String) {
@@ -114,6 +115,24 @@ class DevtiCore(private val context: Context) : EventListener {
     fun setPaused(paused: Boolean): String? = act { node?.setPaused(paused) }
 
     fun forget(deviceId: String): String? = act { node?.revoke(deviceId) }
+
+    private fun runningNode(): DevtiMobile = checkNotNull(node) { "Devti is still starting." }
+
+    fun clipboardHistory(): List<ClipboardEntry> =
+        Reducer.json.decodeFromString(runningNode().clipboardHistoryJson())
+
+    fun shareClipboard(deviceId: String, text: String) {
+        runningNode().sendClipboardTo(deviceId, text)
+        _state.update { it.copy(clipboardRevision = it.clipboardRevision + 1) }
+    }
+
+    fun setClipboardAccess(deviceId: String, allowed: Boolean) =
+        runningNode().setClipboardAccess(deviceId, allowed)
+
+    fun clearClipboardHistory() {
+        runningNode().clearClipboardHistory()
+        _state.update { it.copy(clipboardRevision = it.clipboardRevision + 1) }
+    }
 
     fun reconnectNow() {
         node?.reconnectNow()

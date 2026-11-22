@@ -123,7 +123,7 @@ impl DevtiMobile {
         cfg.model = config.model;
         cfg.app_version = config.app_version;
         cfg.discovery = config.discovery;
-        cfg.capabilities = vec![Capability::Battery];
+        cfg.capabilities = vec![Capability::Battery, Capability::Clipboard];
 
         let secrets: Arc<dyn SecretStore> = Arc::new(SecretBridge(secrets));
         let node = runtime.block_on(Node::start(cfg, secrets))?;
@@ -223,9 +223,28 @@ impl DevtiMobile {
         Ok(self.node.send_clipboard(&text)?)
     }
 
+    /// Shares text only with the paired device selected in the phone UI.
+    pub fn send_clipboard_to(&self, device_id: String, text: String) -> Result<(), DevtiError> {
+        Ok(self.node.send_clipboard_to(&device_id.parse()?, &text)?)
+    }
+
+    /// Changes this device's clipboard grant while preserving the other permissions.
+    pub fn set_clipboard_access(&self, device_id: String, allowed: bool) -> Result<(), DevtiError> {
+        let id = device_id.parse()?;
+        let peer = self.node.peer(&id).ok_or(devti_core::Error::UnknownPeer(device_id))?;
+        let mut permissions = peer.permissions;
+        permissions.clipboard = allowed;
+        self.node.set_access(&id, peer.role, permissions)?;
+        Ok(())
+    }
+
+    pub fn clear_clipboard_history(&self) -> Result<(), DevtiError> {
+        Ok(self.node.clear_clipboard_history()?)
+    }
+
     /// Clipboard history as JSON (`ClipboardEntry[]`).
-    pub fn clipboard_history_json(&self) -> String {
-        serde_json::to_string(&self.node.clipboard_history().unwrap_or_default()).unwrap_or_default()
+    pub fn clipboard_history_json(&self) -> Result<String, DevtiError> {
+        Ok(serde_json::to_string(&self.node.clipboard_history()?).map_err(devti_core::Error::from)?)
     }
 
     /// Find my device: ring `device_id` (or stop).

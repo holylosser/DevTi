@@ -15,15 +15,14 @@ Free, open-source, local-first. Your laptops, phones, tablets and Bluetooth acce
 
 ## Where Devti is today
 
-Devti is being built in eight phases. **Phase 1 — Foundation — is complete**: the secure core,
-pairing, automatic reconnection, the desktop Hub with its first-run wizard and ecosystem map, and
-the Android companion app. Everything listed under "What works now" is real and tested; everything
-else is shown as planned, never faked.
+Phase 1 delivers the secure core, Hub and Android pairing. Its automated suite passes on the
+recorded baseline. Physical-device acceptance is still open. Phase 2 is in development across
+the Hub and Android. See the [QA log](docs/QA.md) for test results and remaining checks.
 
 | Phase | Scope | Status |
 |---|---|---|
-| 1. Foundation | Core protocol, encryption, discovery, pairing, desktop Hub, onboarding, dashboard, Android pairing | **Done** |
-| 2. Continuity | Clipboard, file transfer, drag and drop, notifications, find my device, battery dashboard | Next |
+| 1. Foundation | Core protocol, encryption, discovery, pairing, desktop Hub, onboarding, dashboard, Android pairing | Hardware verification pending |
+| 2. Continuity | Clipboard, file transfer, drag and drop, notifications, find my device, battery dashboard | In progress |
 | 3. Control | Phone → laptop remote, laptop → Android mirror and control, shortcuts deck, local API + CLI | Planned |
 | 4. Screens | Mirror, single-window cast, extended displays, multi-screen layout, one keyboard and mouse | Planned |
 | 5. Bluetooth | Accessory manager, automatic feature detection, device profiles, audio relay | Planned |
@@ -137,6 +136,14 @@ seen). The ring around each device is its battery. Select a device to see its de
 Click **Pair** in the left rail. Phones and tablets scan the QR code; for another computer choose
 *Another computer* and type the 6-digit code it shows (it also appears under *On your network*).
 Codes expire after five minutes, and three wrong codes close the window.
+
+### Sharing clipboard text with Android
+On the phone, open **Clipboard**, copy some text, return to Devti and tap **Send text to** the
+computer you want. On the Hub, open **Files → Clipboard** to see received text. With desktop
+clipboard sharing enabled, copying text on the Hub also sends it to connected devices that
+have clipboard sharing enabled. On the phone, tap **Copy** beside a received item to put it
+on the Android clipboard. Each device keeps its own recent history. On the phone, use the
+switch beside a device to turn sharing with it on or off.
 
 ### Permissions and roles
 Open a device → *What it may do here*. **Trusted** allows everything; **Restricted** allows only

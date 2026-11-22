@@ -71,6 +71,9 @@ impl Inner {
     pub(crate) fn send_to(&self, peer: &DeviceId, msg: ControlMsg) -> Result<()> {
         let peers = self.peers.read();
         let p = peers.get(peer).ok_or_else(|| Error::UnknownPeer(peer.to_string()))?;
+        if matches!(msg, ControlMsg::Clipboard { .. }) && !p.record.permissions.clipboard {
+            return Err(Error::InvalidInput("Clipboard sharing is off for this device".into()));
+        }
         let s = p.session.as_ref().ok_or_else(|| Error::Connection(format!("{} is offline", p.record.info.name)))?;
         s.tx.send(msg).map_err(|_| Error::Connection("session closed".into()))
     }
@@ -203,6 +206,23 @@ impl super::Node {
         inner.store.add_clipboard(ts, None, text)?;
         inner.broadcast(ControlMsg::Clipboard { text: text.to_string(), ts });
         Ok(true)
+    }
+
+    /// Queues a user-selected clipboard item for exactly one paired device.
+    /// An explicit send may repeat a previous item or send it to a different peer.
+    pub fn send_clipboard_to(&self, peer: &DeviceId, text: &str) -> Result<()> {
+        let inner = &self.inner;
+        inner.ensure_running()?;
+        if text.trim().is_empty() || text.len() > CLIPBOARD_MAX_BYTES {
+            return Err(Error::InvalidInput("Choose nonempty text of up to 256 KiB".into()));
+        }
+        let ts = now_ms();
+        inner.send_to(peer, ControlMsg::Clipboard { text: text.into(), ts })?;
+        // The message is already queued if saving local history fails.
+        if let Err(e) = inner.store.add_clipboard(ts, None, text) {
+            tracing::warn!(error = %e, "could not save outgoing clipboard history");
+        }
+        Ok(())
     }
 
     pub fn clipboard_history(&self) -> Result<Vec<crate::store::ClipboardEntry>> {

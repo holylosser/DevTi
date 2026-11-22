@@ -9,6 +9,12 @@ the results recorded here. A phase is only marked done when all of this passes.
 
 **Date:** 2026-11-21 · **Commit:** see the branch history for the run that produced the artifacts
 
+**Recheck, 2026-11-22.** All seven jobs passed on baseline `9d4b99c`, including both desktop
+builds, real Hub smoke tests, the Android APK and Kotlin binding tests.
+[CI run and artifacts](https://github.com/holylosser/DevTi/actions/runs/44987521404).
+Of the 22 checklist rows below, 20 have a recorded pass in their stated environments.
+Rows 19 and 22 still need desktop and phone acceptance evidence.
+
 ### Automated results
 
 | Suite | Result | Where it runs |
@@ -82,7 +88,7 @@ Screen-extension latency (< 50 ms) is a Phase 4 target and will be measured ther
 | 19 | Tray: open, pair, pause/resume, quit; close-to-tray keeps devices connected | Built; needs a real desktop session to verify (see below) |
 | 20 | Bluetooth step reports "no adapter" honestly when none exists | ✅ (container without an adapter) |
 | 21 | Keyboard: every control reachable, visible focus ring | ✅ |
-| 22 | Android: onboarding, QR scan, code entry, verification, home | ✅ compiles; logic tested on JVM |
+| 22 | Android: onboarding, QR scan, code entry, verification, home | Partial: APK builds and JVM pairing passes. Physical camera-to-home flow pending. |
 
 ### Not verifiable in the build environment (to check on real hardware)
 These are built but could not be exercised here, which has no physical devices, GPU, Bluetooth
@@ -93,3 +99,31 @@ adapter or Android emulator:
 - Windows installer on a real Windows 11 machine (built and lint/tests pass on Windows CI).
 - Tray icon behaviour on GNOME/KDE/Windows desktops (needs a session bus and a panel).
 - Live Bluetooth scanning with a real adapter.
+
+
+### Recording the remaining hardware checks
+
+Record the build commit, OS version, device model and observed result for each check. Keep
+pairing links, codes and device identifiers out of public reports.
+
+| Check | Passing observation |
+|---|---|
+| Windows 11 installation | Install the CI package on a clean Windows 11 profile, launch it and finish the first-run wizard. |
+| Android and Wi-Fi | With both devices on the same Wi-Fi, find the Hub by name and pair by code. Remove the test pairing, then scan a fresh QR, compare both codes and reach Home. |
+| Android persistence | Restart the apps and reconnect without pairing again. Background the phone, change its charging state and observe the update on the Hub. |
+| Desktop tray | With a device connected, close the window and verify the connection stays up. Use the tray to open, pair, pause, resume and quit. Record the desktop environment. |
+| Bluetooth radio | Put a known accessory into discovery mode. Verify it appears during onboarding on a machine with a working adapter. |
+
+## Phase 2 — Continuity
+
+The core and desktop have tests for clipboard, file transfers, notifications, ring and battery.
+The desktop smoke test uses a simulated phone. Android text sharing adds a real phone entry
+point, a per-device clipboard switch and local history.
+
+| Android clipboard acceptance | What to observe |
+|---|---|
+| Phone to Hub | Copy text on the phone, choose one connected computer in Clipboard and verify only that computer receives it. |
+| Hub to phone | Copy text on the Hub. Open Clipboard on the phone, tap Copy beside the received item, and paste it into another app. |
+| Permission and history | Turn sharing off for the computer, change its clipboard and check that the phone receives no new entry. Clear the phone's history and reopen Clipboard. |
+
+Physical-device results for these Phase 2 checks are pending.

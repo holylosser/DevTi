@@ -10,9 +10,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,8 +36,12 @@ fun DevtiRoot(core: DevtiCore) {
     val prefs = remember { context.getSharedPreferences("devti_ui", Context.MODE_PRIVATE) }
     val state by core.state.collectAsStateWithLifecycle()
     var onboarded by remember { mutableStateOf(prefs.getBoolean("onboarded", false)) }
-    var pairing by remember { mutableStateOf(false) }
+    var pairing by rememberSaveable { mutableStateOf(false) }
     val c = Devti.colors
+    // A system-camera link can start pairing while Home is visible.
+    LaunchedEffect(state.pairing) {
+        if (state.pairing != null) pairing = true
+    }
 
     when {
         state.error != null -> Column(

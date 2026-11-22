@@ -122,6 +122,41 @@ async fn clipboard_syncs_without_echo_and_respects_permission() {
 }
 
 #[tokio::test]
+async fn targeted_clipboard_only_reaches_the_selected_peer() {
+    let mut phone = spawn("Phone", DeviceKind::Phone).await;
+    let mut laptop = spawn("Laptop", DeviceKind::Laptop).await;
+    let mut other = spawn("Other", DeviceKind::Desktop).await;
+    pair(&mut laptop, &mut phone).await;
+    pair(&mut other, &mut phone).await;
+    let id = laptop.node.device_id();
+    phone.node.send_clipboard_to(&id, "for laptop only").unwrap();
+    // A subsequent broadcast on the same ordered control stream bounds the negative assertion.
+    assert!(phone.node.send_clipboard("barrier").unwrap());
+    eventually("both received barrier", || {
+        [&laptop, &other].iter().all(|p| p.node.clipboard_history().unwrap().iter().any(|c| c.text == "barrier"))
+    })
+    .await;
+    assert!(laptop.node.clipboard_history().unwrap().iter().any(|c| c.text == "for laptop only"));
+    assert!(other.node.clipboard_history().unwrap().iter().all(|c| c.text != "for laptop only"));
+
+    let mut permissions = Permissions::for_role(TrustRole::Trusted);
+    permissions.clipboard = false;
+    phone.node.set_access(&id, TrustRole::Trusted, permissions).unwrap();
+    assert!(phone.node.send_clipboard_to(&id, "blocked").is_err());
+    assert!(phone.node.send_clipboard("only enabled devices").unwrap());
+    // Re-enable and send a final marker to the laptop. Both paths share its control stream.
+    permissions.clipboard = true;
+    phone.node.set_access(&id, TrustRole::Trusted, permissions).unwrap();
+    phone.node.send_clipboard_to(&id, "done").unwrap();
+    eventually("ordered send", || laptop.node.clipboard_history().unwrap()[0].text == "done").await;
+    assert!(laptop.node.clipboard_history().unwrap().iter().all(|c| c.text != "only enabled devices"));
+    assert!(phone.node.send_clipboard_to(&id, " ").is_err());
+    assert!(phone.node.send_clipboard_to(&id, &"a".repeat(256 * 1024 + 1)).is_err());
+    phone.node.set_paused(true).unwrap();
+    assert!(phone.node.send_clipboard_to(&id, "paused").is_err());
+}
+
+#[tokio::test]
 async fn find_my_device_rings_and_restricted_devices_cannot() {
     let mut hub = spawn("Hub", DeviceKind::Laptop).await;
     let mut phone = spawn("Phone", DeviceKind::Phone).await;

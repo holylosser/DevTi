@@ -56,6 +56,7 @@ object Reducer {
                 if (state.peers.any { it.info.id == dev.id }) state
                 else state.copy(nearby = (state.nearby.filterNot { it.id == dev.id } + dev).sortedBy { it.name })
             }
+            "clipboard_received" -> state.copy(clipboardRevision = state.clipboardRevision + 1)
             "device_lost" -> state.copy(nearby = state.nearby.filterNot { it.id == obj.string("id") })
             "pairing_started" -> obj.long("pairing_id")?.let { state.copy(pairing = PairingStage.Connecting(it)) } ?: state
             "pairing_verify" -> {

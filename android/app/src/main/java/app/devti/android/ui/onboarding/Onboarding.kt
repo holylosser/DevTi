@@ -75,7 +75,7 @@ fun Onboarding(core: DevtiCore, state: CoreState, skipWelcome: Boolean = false, 
     val pairing = state.pairing
 
     // While a pairing is in flight its stage decides what is on screen.
-    val pairingView = pairing != null && step in setOf(Step.Scan, Step.Code, Step.FindHub)
+    val pairingView = pairing != null
     LaunchedEffect(pairing) {
         if (pairing is PairingStage.Done && step != Step.Permissions && step != Step.Done) {
             step = Step.Permissions

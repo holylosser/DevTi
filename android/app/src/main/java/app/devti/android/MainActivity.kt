@@ -20,7 +20,7 @@ class MainActivity : ComponentActivity() {
         if (getSharedPreferences("devti_ui", MODE_PRIVATE).getBoolean("onboarded", false)) {
             DevtiService.start(this)
         }
-        handleLink(intent)
+        if (savedInstanceState == null) handleLink(intent)
         setContent { DevtiTheme { DevtiRoot(core) } }
     }
 

@@ -1,3 +1,4 @@
+import app.devti.android.core.state.ClipboardEntry
 import app.devti.android.core.state.CoreState
 import app.devti.android.core.state.PairingStage
 import app.devti.android.core.state.Reducer
@@ -109,6 +110,22 @@ class CoreBridgeTest {
         phone.core.setBattery(57u, true)
         val hubSees = hub.waitFor("battery") { s -> s.peers.any { it.status.battery?.percent == 57 } }
         assertEquals(true, hubSees.peers.first().status.battery?.charging)
+
+        // Share through the actual Kotlin bindings, then read and clear the history used by the phone UI.
+        val hubId = hub.state.get().local!!.info.id
+        val phoneId = phone.state.get().local!!.info.id
+        phone.core.sendClipboardTo(hubId, "from the phone")
+        hub.waitFor("clipboard from phone") { it.clipboardRevision > 0 }
+        assertEquals("from the phone", Reducer.json.decodeFromString<List<ClipboardEntry>>(hub.core.clipboardHistoryJson()).first().text)
+        hub.core.sendClipboardTo(phoneId, "from the laptop")
+        phone.waitFor("clipboard from hub") { it.clipboardRevision > 0 }
+        val received = Reducer.json.decodeFromString<List<ClipboardEntry>>(phone.core.clipboardHistoryJson()).first()
+        assertEquals("from the laptop", received.text)
+        assertEquals("Studio Laptop", received.deviceName)
+        phone.core.setClipboardAccess(hubId, false)
+        assertFailsWith<DevtiException.InvalidInput> { phone.core.sendClipboardTo(hubId, "disabled") }
+        phone.core.clearClipboardHistory()
+        assertTrue(Reducer.json.decodeFromString<List<ClipboardEntry>>(phone.core.clipboardHistoryJson()).isEmpty())
 
         // Errors arrive as typed exceptions with a readable reason.
         val bad = assertFailsWith<DevtiException.InvalidInput> { phone.core.pairWithUri("nope") }

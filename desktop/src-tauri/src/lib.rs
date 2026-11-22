@@ -92,7 +92,7 @@ pub fn run() {
             let mut cfg = NodeConfig::new(&data_dir, &system::default_device_name(), kind);
             cfg.os_version = system::os_version();
             cfg.app_version = env!("CARGO_PKG_VERSION").to_string();
-            cfg.capabilities = vec![Capability::Battery, Capability::BluetoothHub];
+            cfg.capabilities = vec![Capability::Battery, Capability::BluetoothHub, Capability::Clipboard];
             let secrets = devti_core::secret::best_available("app.devti.hub", data_dir.join("secrets"))?;
             let node = tauri::async_runtime::block_on(Node::start(cfg, Arc::from(secrets)))?;
 

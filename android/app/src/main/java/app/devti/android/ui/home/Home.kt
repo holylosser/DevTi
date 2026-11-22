@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,11 +47,17 @@ private val WORKS_NOW = listOf(
     "Pairing with a QR code or 6-digit code, verified on both screens",
     "Encrypted connection that reconnects by itself",
     "Sharing this phone's battery level with your computer",
+    "Sending and receiving clipboard text with paired devices",
     "Pausing Devti or removing a computer at any time",
 )
 
 @Composable
 fun Home(core: DevtiCore, state: CoreState, onPairAnother: () -> Unit) {
+    var clipboardOpen by rememberSaveable { mutableStateOf(false) }
+    if (clipboardOpen) {
+        ClipboardScreen(core, state, onBack = { clipboardOpen = false })
+        return
+    }
     val c = Devti.colors
     val hub = state.hub
     val local = state.local
@@ -102,6 +109,8 @@ fun Home(core: DevtiCore, state: CoreState, onPairAnother: () -> Unit) {
             GhostButton("Rename", onClick = { renaming = true })
         }
 
+        QuietButton("Clipboard", onClick = { clipboardOpen = true }, modifier = Modifier.fillMaxWidth())
+
         // Other paired devices.
         if (state.peers.isNotEmpty()) {
             Text("Paired", style = Devti.type.heading, color = c.text)
@@ -128,7 +137,7 @@ fun Home(core: DevtiCore, state: CoreState, onPairAnother: () -> Unit) {
         Card {
             WORKS_NOW.forEach { Text("• $it", style = Devti.type.small, color = c.textDim) }
             Text(
-                "Clipboard, files, notifications, screen sharing and remote control arrive in the next Devti updates.",
+                "File sharing, notifications, screen sharing and remote control arrive in later Android updates.",
                 style = Devti.type.small,
                 color = c.textFaint,
             )

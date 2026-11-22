@@ -96,6 +96,13 @@ sealed interface PairingStage {
     data class Failed(override val pairingId: Long, val reason: String, val message: String) : PairingStage
 }
 
+@Serializable
+data class ClipboardEntry(
+    val id: Long,
+    @SerialName("device_name") val deviceName: String? = null,
+    val text: String,
+)
+
 /** Everything the phone UI renders. */
 data class CoreState(
     val ready: Boolean = false,
@@ -104,6 +111,7 @@ data class CoreState(
     val peers: List<PeerSnapshot> = emptyList(),
     val nearby: List<DiscoveredDevice> = emptyList(),
     val pairing: PairingStage? = null,
+    val clipboardRevision: Long = 0,
     /** Devices removed by the other side, to tell the user once. */
     val removedNotice: String? = null,
 ) {

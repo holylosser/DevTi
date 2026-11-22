@@ -554,6 +554,9 @@ impl Inner {
     /// Sends a control message to every connected peer.
     pub(crate) fn broadcast(&self, msg: ControlMsg) {
         for p in self.peers.read().values() {
+            if matches!(msg, ControlMsg::Clipboard { .. }) && !p.record.permissions.clipboard {
+                continue;
+            }
             if let Some(s) = &p.session {
                 let _ = s.tx.send(msg.clone());
             }
