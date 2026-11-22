@@ -381,15 +381,30 @@ impl Node {
 
     /// Changes a device's role and permissions.
     pub fn set_access(&self, id: &DeviceId, role: TrustRole, permissions: Permissions) -> Result<PeerSnapshot> {
+        self.update_access(id, |_| (role, permissions))
+    }
+
+    /// Changes just the clipboard grant, keeping other concurrent permission edits.
+    pub fn set_clipboard_access(&self, id: &DeviceId, allowed: bool) -> Result<()> {
+        self.update_access(id, |record| (record.role, Permissions { clipboard: allowed, ..record.permissions }))?;
+        Ok(())
+    }
+
+    fn update_access(
+        &self,
+        id: &DeviceId,
+        change: impl FnOnce(&PeerRecord) -> (TrustRole, Permissions),
+    ) -> Result<PeerSnapshot> {
         let snap = {
             let mut peers = self.inner.peers.write();
             let p = peers.get_mut(id).ok_or_else(|| Error::UnknownPeer(id.to_string()))?;
+            let (role, permissions) = change(&p.record);
+            self.inner.store.set_peer_access(id, role, &permissions)?;
             p.record.role = role;
             p.record.permissions = permissions;
-            self.inner.store.set_peer_access(id, role, &permissions)?;
             self.inner.snapshot(p)
         };
-        self.inner.log(Some((id, &snap.info.name)), "permissions_changed", role.as_str());
+        self.inner.log(Some((id, &snap.info.name)), "permissions_changed", snap.role.as_str());
         self.inner.emit(NodeEvent::PeerChanged { peer: snap.clone() });
         Ok(snap)
     }

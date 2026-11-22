@@ -139,14 +139,15 @@ async fn targeted_clipboard_only_reaches_the_selected_peer() {
     assert!(laptop.node.clipboard_history().unwrap().iter().any(|c| c.text == "for laptop only"));
     assert!(other.node.clipboard_history().unwrap().iter().all(|c| c.text != "for laptop only"));
 
-    let mut permissions = Permissions::for_role(TrustRole::Trusted);
-    permissions.clipboard = false;
-    phone.node.set_access(&id, TrustRole::Trusted, permissions).unwrap();
+    let before = phone.node.peer(&id).unwrap();
+    phone.node.set_clipboard_access(&id, false).unwrap();
+    let after = phone.node.peer(&id).unwrap();
+    assert_eq!(after.role, before.role);
+    assert_eq!(after.permissions, Permissions { clipboard: false, ..before.permissions });
     assert!(phone.node.send_clipboard_to(&id, "blocked").is_err());
     assert!(phone.node.send_clipboard("only enabled devices").unwrap());
     // Re-enable and send a final marker to the laptop. Both paths share its control stream.
-    permissions.clipboard = true;
-    phone.node.set_access(&id, TrustRole::Trusted, permissions).unwrap();
+    phone.node.set_clipboard_access(&id, true).unwrap();
     phone.node.send_clipboard_to(&id, "done").unwrap();
     eventually("ordered send", || laptop.node.clipboard_history().unwrap()[0].text == "done").await;
     assert!(laptop.node.clipboard_history().unwrap().iter().all(|c| c.text != "only enabled devices"));

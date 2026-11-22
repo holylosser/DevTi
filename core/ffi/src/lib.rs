@@ -230,12 +230,7 @@ impl DevtiMobile {
 
     /// Changes this device's clipboard grant while preserving the other permissions.
     pub fn set_clipboard_access(&self, device_id: String, allowed: bool) -> Result<(), DevtiError> {
-        let id = device_id.parse()?;
-        let peer = self.node.peer(&id).ok_or(devti_core::Error::UnknownPeer(device_id))?;
-        let mut permissions = peer.permissions;
-        permissions.clipboard = allowed;
-        self.node.set_access(&id, peer.role, permissions)?;
-        Ok(())
+        Ok(self.node.set_clipboard_access(&device_id.parse()?, allowed)?)
     }
 
     pub fn clear_clipboard_history(&self) -> Result<(), DevtiError> {
@@ -243,8 +238,8 @@ impl DevtiMobile {
     }
 
     /// Clipboard history as JSON (`ClipboardEntry[]`).
-    pub fn clipboard_history_json(&self) -> Result<String, DevtiError> {
-        Ok(serde_json::to_string(&self.node.clipboard_history()?).map_err(devti_core::Error::from)?)
+    pub fn clipboard_history_json(&self) -> String {
+        serde_json::to_string(&self.node.clipboard_history().unwrap_or_default()).unwrap_or_default()
     }
 
     /// Find my device: ring `device_id` (or stop).
