@@ -19,3 +19,33 @@ android/app/src/main/java/uniffi
 **/.gradle
 android/jvm-check/build
 .kotlin
+
+# Local configuration and signing credentials
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+key.properties
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.p8
+*.pk8
+*.key
+privkey*.pem
+*private*.pem
+
+# Per-device secrets, records and temporary transfers
+*.secret
+**/secrets/*.tmp
+devti_sealed_secrets.xml
+identity.cert.der
+devti.db
+devti.db-*
+.devti-*.part
+devti-diagnostics-*.txt
+
+# Local-only project documents
+/private/

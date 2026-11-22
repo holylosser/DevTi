@@ -11,6 +11,12 @@ under the same license.
   three options before writing code.
 - **Every component matters.** No placeholder screens or stubbed handlers in shipped code.
 
+## Public and private files
+
+Use sample values in shared configuration such as `.env.example`. Keep device identity backups, local Devti databases and signing keys outside Git. Store CI signing credentials in [GitHub Actions secrets](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets).
+
+Keep confidential documents in access-controlled storage. This repository also ignores a top-level `private/` directory to prevent accidental staging of local working copies. Ignore rules apply to untracked files.
+
 ## Set up
 
 | Need | Install |
