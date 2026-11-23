@@ -15,14 +15,14 @@ Free, open-source, local-first. Your laptops, phones, tablets and Bluetooth acce
 
 ## Where Devti is today
 
-Phase 1 delivers the secure core, Hub and Android pairing. Its automated suite passes on the
-recorded baseline. Physical-device acceptance is still open. Phase 2 is in development across
+Phase 1 is complete. The Foundation checklist passed all 22 checks, including the desktop
+tray and Android pairing flows confirmed by the project owner. Phase 2 is in development across
 the Hub and Android. See the [QA log](docs/QA.md) for test results and remaining checks.
 
 | Phase | Scope | Status |
 |---|---|---|
-| 1. Foundation | Core protocol, encryption, discovery, pairing, desktop Hub, onboarding, dashboard, Android pairing | Hardware verification pending |
-| 2. Continuity | Clipboard, file transfer, drag and drop, notifications, find my device, battery dashboard | In progress |
+| 1. Foundation | Core protocol, encryption, discovery, pairing, desktop Hub, onboarding, dashboard, Android pairing | Complete · 22/22 checks |
+| 2. Continuity | Clipboard, file transfer, drag and drop, notifications, find my device, battery dashboard, activity log, permissions | In progress |
 | 3. Control | Phone → laptop remote, laptop → Android mirror and control, shortcuts deck, local API + CLI | Planned |
 | 4. Screens | Mirror, single-window cast, extended displays, multi-screen layout, one keyboard and mouse | Planned |
 | 5. Bluetooth | Accessory manager, automatic feature detection, device profiles, audio relay | Planned |
@@ -144,6 +144,16 @@ clipboard sharing enabled, copying text on the Hub also sends it to connected de
 have clipboard sharing enabled. On the phone, tap **Copy** beside a received item to put it
 on the Android clipboard. Each device keeps its own recent history. On the phone, use the
 switch beside a device to turn sharing with it on or off.
+
+### Finding a phone or computer
+On the Hub, select a connected phone and choose **Ring it**. On Android, open Devti and
+choose **Ring device** beside a connected computer. The receiver must allow commands from
+the sender. On the phone, this is the **Allow commands** switch beside that device.
+
+To silence the phone, tap **I found it** in Devti, use **Stop ringing** in its connection
+notification, or stop it from the Hub. The phone plays a repeating tone on its alarm stream
+at the volume allowed by its alarm and Do Not Disturb settings. On a computer, dismiss the
+find prompt or stop it from the phone.
 
 ### Permissions and roles
 Open a device → *What it may do here*. **Trusted** allows everything; **Restricted** allows only

@@ -42,6 +42,25 @@ class ReducerTest {
     }
 
     @Test
+    fun activeRingIsScopedToAnAllowedConnectedPeer() {
+        val paired = Reducer.apply(CoreState(), """{"type":"peer_changed","peer":$peer}""")
+        val start = """{"type":"ring_requested","from":"AAAAAAAAAAAAAAAA","on":true}"""
+        val active = Reducer.apply(paired, start)
+        assertEquals("AAAAAAAAAAAAAAAA", active.ringingPeerId)
+        assertEquals(active, Reducer.apply(active, """{"type":"ring_requested","from":"OTHER","on":false}"""))
+        assertEquals(active, Reducer.apply(active, start))
+        assertEquals(paired, Reducer.apply(paired, """{"type":"ring_requested","from":"OTHER","on":true}"""))
+        assertNull(Reducer.apply(active, """{"type":"paused","paused":true}""").ringingPeerId)
+        assertNull(Reducer.apply(active, """{"type":"peer_removed","id":"AAAAAAAAAAAAAAAA"}""").ringingPeerId)
+        for (changedPeer in listOf(peer.replace("\"online\":true", "\"online\":false"),
+                                   peer.replace("\"commands\":true", "\"commands\":false"))) {
+            val stopped = Reducer.apply(active, """{"type":"peer_changed","peer":$changedPeer}""")
+            assertNull(stopped.ringingPeerId)
+            assertNull(Reducer.apply(stopped, start).ringingPeerId)
+        }
+    }
+
+    @Test
     fun unknownAndBrokenEventsAreIgnored() {
         val s = CoreState(ready = true)
         assertEquals(s, Reducer.apply(s, "{"))

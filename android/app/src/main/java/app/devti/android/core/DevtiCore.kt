@@ -129,6 +129,12 @@ class DevtiCore(private val context: Context) : EventListener {
     fun setClipboardAccess(deviceId: String, allowed: Boolean) =
         runningNode().setClipboardAccess(deviceId, allowed)
 
+    fun requestRing(deviceId: String, on: Boolean) = runningNode().ring(deviceId, on)
+
+    fun setCommandsAccess(deviceId: String, allowed: Boolean) = runningNode().setCommandsAccess(deviceId, allowed)
+
+    fun stopRinging() = _state.update { it.copy(ringingPeerId = null) }
+
     fun clearClipboardHistory() {
         runningNode().clearClipboardHistory()
         _state.update { it.copy(clipboardRevision = it.clipboardRevision + 1) }

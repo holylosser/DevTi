@@ -2,6 +2,7 @@ package app.devti.android.core.state
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
@@ -31,12 +32,16 @@ object Reducer {
     fun apply(state: CoreState, eventJson: String): CoreState {
         val obj = runCatching { json.parseToJsonElement(eventJson).jsonObject }.getOrNull() ?: return state
         return when (obj.string("type")) {
-            "local_changed" -> state.copy(local = obj.decode("local", LocalSnapshot.serializer()) ?: state.local)
+            "local_changed" -> {
+                val local = obj.decode("local", LocalSnapshot.serializer()) ?: return state
+                state.copy(local = local, ringingPeerId = state.ringingPeerId.takeUnless { local.paused })
+            }
             "peer_changed" -> {
                 val peer = obj.decode("peer", PeerSnapshot.serializer()) ?: return state
                 state.copy(
                     peers = sortPeers(state.peers.filterNot { it.info.id == peer.info.id } + peer),
                     nearby = state.nearby.filterNot { it.id == peer.info.id },
+                    ringingPeerId = state.ringingPeerId.takeUnless { it == peer.info.id && (!peer.online || !peer.permissions.commands) },
                 )
             }
             "peer_removed" -> {
@@ -44,6 +49,7 @@ object Reducer {
                 val gone = state.peers.firstOrNull { it.info.id == id }
                 state.copy(
                     peers = state.peers.filterNot { it.info.id == id },
+                    ringingPeerId = state.ringingPeerId.takeUnless { it == id },
                     removedNotice = if (obj.string("reason") == "revoked_by_peer" && gone != null) {
                         "${gone.info.name} removed this phone from its devices."
                     } else {
@@ -55,6 +61,16 @@ object Reducer {
                 val dev = obj.decode("device", DiscoveredDevice.serializer()) ?: return state
                 if (state.peers.any { it.info.id == dev.id }) state
                 else state.copy(nearby = (state.nearby.filterNot { it.id == dev.id } + dev).sortedBy { it.name })
+            }
+            "ring_requested" -> {
+                val from = obj.string("from") ?: return state
+                when ((obj["on"] as? JsonPrimitive)?.booleanOrNull) {
+                    true -> if (state.local?.paused != true && state.peers.any { it.info.id == from && it.online && it.permissions.commands }) {
+                        state.copy(ringingPeerId = from)
+                    } else state
+                    false -> state.copy(ringingPeerId = state.ringingPeerId.takeUnless { it == from })
+                    null -> state
+                }
             }
             "clipboard_received" -> state.copy(clipboardRevision = state.clipboardRevision + 1)
             "device_lost" -> state.copy(nearby = state.nearby.filterNot { it.id == obj.string("id") })
@@ -78,7 +94,7 @@ object Reducer {
             }
             "paused" -> {
                 val paused = obj["paused"]?.jsonPrimitive?.booleanOrNull ?: return state
-                state.copy(local = state.local?.copy(paused = paused))
+                state.copy(local = state.local?.copy(paused = paused), ringingPeerId = state.ringingPeerId.takeUnless { paused })
             }
             else -> state
         }

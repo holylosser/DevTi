@@ -12,8 +12,10 @@ the results recorded here. A phase is only marked done when all of this passes.
 **Recheck, 2026-11-22.** All seven jobs passed on baseline `9d4b99c`, including both desktop
 builds, real Hub smoke tests, the Android APK and Kotlin binding tests.
 [CI run and artifacts](https://github.com/holylosser/DevTi/actions/runs/44987521404).
-Of the 22 checklist rows below, 20 have a recorded pass in their stated environments.
-Rows 19 and 22 still need desktop and phone acceptance evidence.
+At that recheck, 20 of 22 checklist rows had passed.
+
+**Foundation accepted on 2026-11-23.** The project owner confirmed hands-on verification of
+the two remaining checks, rows 19 and 22. All 22 Foundation checklist rows now pass.
 
 ### Automated results
 
@@ -85,26 +87,18 @@ Screen-extension latency (< 50 ms) is a Phase 4 target and will be measured ther
 | 16 | Activity log records pairings, connections, removals; CSV export works | ✅ |
 | 17 | Theme (System/Night/Day) and Motion settings apply immediately | ✅ |
 | 18 | Tour visits five stops; Escape ends it; re-runnable from Help | ✅ |
-| 19 | Tray: open, pair, pause/resume, quit; close-to-tray keeps devices connected | Built; needs a real desktop session to verify (see below) |
+| 19 | Tray: open, pair, pause/resume, quit; close-to-tray keeps devices connected | Pass · hands-on desktop check confirmed by the project owner on 2026-11-23 |
 | 20 | Bluetooth step reports "no adapter" honestly when none exists | ✅ (container without an adapter) |
 | 21 | Keyboard: every control reachable, visible focus ring | ✅ |
-| 22 | Android: onboarding, QR scan, code entry, verification, home | Partial: APK builds and JVM pairing passes. Physical camera-to-home flow pending. |
+| 22 | Android: onboarding, QR scan, code entry, verification, home | Pass · hands-on phone flow confirmed by the project owner on 2026-11-23 |
 
-### Not verifiable in the build environment (to check on real hardware)
-These are built but could not be exercised here, which has no physical devices, GPU, Bluetooth
-adapter or Android emulator:
-- Android app on a phone: camera QR scanning, Keystore, foreground service, battery broadcasts.
-- mDNS discovery across two physical machines on Wi-Fi (works on loopback; multicast is blocked
-  in CI containers).
-- Windows installer on a real Windows 11 machine (built and lint/tests pass on Windows CI).
-- Tray icon behaviour on GNOME/KDE/Windows desktops (needs a session bus and a panel).
-- Live Bluetooth scanning with a real adapter.
+### Hardware coverage
 
-
-### Recording the remaining hardware checks
-
-Record the build commit, OS version, device model and observed result for each check. Keep
-pairing links, codes and device identifiers out of public reports.
+The owner confirmed the tray and Android onboarding checks above. Additional platform
+observations such as a clean Windows 11 install, physical Wi-Fi discovery, persistence
+after restarting both apps, and live Bluetooth discovery have no separate results recorded.
+The table below describes how to reproduce them. Public reports should omit pairing links,
+codes and device identifiers.
 
 | Check | Passing observation |
 |---|---|
@@ -116,14 +110,44 @@ pairing links, codes and device identifiers out of public reports.
 
 ## Phase 2 — Continuity
 
-The core and desktop have tests for clipboard, file transfers, notifications, ring and battery.
-The desktop smoke test uses a simulated phone. Android text sharing adds a real phone entry
-point, a per-device clipboard switch and local history.
+**Status on 2026-11-23: in progress.** Foundation sign-off covers the Phase 1 checklist.
+The Phase 2 desktop smoke test exercises the real Hub with a simulated phone. The Android
+JVM suite uses two Rust nodes through the same bindings as the app. Physical acceptance
+of the Phase 2 phone features is tracked below.
+
+The Android ring change passed all 83 Rust core and FFI tests, all 7 Kotlin JVM tests
+(including the app reducer tests), and all 18 desktop unit tests. The JVM pairing and ring
+test ran two nodes over loopback and covered both directions, command revocation while
+ringing, and preservation of the clipboard grant. Rust formatting and Clippy, desktop lint,
+TypeScript checking and the production web build also passed.
+
+The local Android package build stopped before compilation because the Android SDK was
+unavailable. The desktop UI suite stopped at Chromium startup because the host denied a
+browser socket. A fresh APK, the desktop browser suite and physical ring acceptance are
+outstanding for this change.
+
+| Roadmap item | What is implemented | Remaining scope or acceptance |
+|---|---|---|
+| Universal clipboard | Two-way text, device permissions and history on Android and the Hub | Image and file clipboard; physical text checks below |
+| File transfer | Core and Hub support transfers, progress, cancel and retry | Android file picker, share sheet and user-visible received files; physical transfer and resume |
+| Drag and drop | Drop files onto a Hub device or choose a recipient | Physical drop-to-phone acceptance; drop onto an extended screen depends on Phase 4 |
+| Notifications | Hub has mirrored alerts, actions, quick reply and Do Not Disturb | Android notification-listener integration and action delivery to the originating app |
+| Find my device | Android and Hub can request and stop a ring. Android supports local dismissal, background playback and per-peer command permission | Physical audio and background checks below; accessory tones on supported hardware remain open |
+| Battery dashboard | Android reports battery and charging state. The Hub displays device history and low-battery alerts | Accessory coverage and physical low-battery alert acceptance |
+| Activity log | Hub filtering and CSV export passed Foundation check 16 | Phase 2 continuity actions need a physical session to check their exported history |
+| Per-device permissions | Hub roles and granular grants passed Foundation check 15. Android exposes clipboard and command grants | Validate the phone toggles and peer isolation in a physical session |
 
 | Android clipboard acceptance | What to observe |
 |---|---|
 | Phone to Hub | Copy text on the phone, choose one connected computer in Clipboard and verify only that computer receives it. |
 | Hub to phone | Copy text on the Hub. Open Clipboard on the phone, tap Copy beside the received item, and paste it into another app. |
 | Permission and history | Turn sharing off for the computer, change its clipboard and check that the phone receives no new entry. Clear the phone's history and reopen Clipboard. |
+
+| Android find-my-device acceptance | What to observe |
+|---|---|
+| Hub to phone | With the phone in the background and alarm audio enabled, use **Ring it** on the Hub. Listen for the repeated tone. Stop it from the Hub, then repeat and stop from the phone’s connection notification. |
+| Local dismissal | Ring the phone again, open Devti and tap **I found it**. Verify that the tone stops and stays stopped after returning to Home. |
+| Phone to Hub | Tap **Ring device** next to one connected computer. Verify the selected Hub shows the find prompt, then use **Stop ringing** on the phone. |
+| Permission and disconnect | Turn off **Allow commands** for the sender during a ring. Verify silence, try another ring from that sender, and confirm the separate clipboard grant retains its previous setting. Re-enable commands, ring again, then pause or disconnect and confirm silence. |
 
 Physical-device results for these Phase 2 checks are pending.

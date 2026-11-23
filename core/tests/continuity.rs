@@ -187,6 +187,18 @@ async fn find_my_device_rings_and_restricted_devices_cannot() {
     while let Ok(e) = phone.ev.try_recv() {
         assert!(!matches!(e, NodeEvent::RingRequested { .. }), "restricted device rang the phone");
     }
+    // Allowing commands explicitly retains the role and all unrelated grants.
+    let before = phone.node.peer(&hid).unwrap();
+    phone.node.set_commands_access(&hid, true).unwrap();
+    let after = phone.node.peer(&hid).unwrap();
+    assert_eq!(after.role, before.role);
+    assert_eq!(after.permissions, Permissions { commands: true, ..before.permissions });
+    hub.node.ring(&pid, true).unwrap();
+    wait_for(&mut phone.ev, "ring after command grant", |e| match e {
+        NodeEvent::RingRequested { on: true, .. } => Some(()),
+        _ => None,
+    })
+    .await;
     assert!(hub.node.ring(&devti_core::model::DeviceId::from_bytes([0; 10]), true).is_err());
 }
 

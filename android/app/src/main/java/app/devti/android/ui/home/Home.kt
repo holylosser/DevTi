@@ -18,19 +18,24 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import app.devti.android.core.DevtiCore
+import app.devti.android.core.readable
 import app.devti.android.core.state.CoreState
 import app.devti.android.core.state.PeerSnapshot
 import app.devti.android.ui.components.BatteryBar
@@ -41,6 +46,12 @@ import app.devti.android.ui.components.QuietButton
 import app.devti.android.ui.onboarding.VoiceDot
 import app.devti.android.ui.theme.Devti
 import app.devti.android.ui.theme.voiceFor
+import java.text.DateFormat
+import java.util.Date
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import uniffi.devti_ffi.DevtiException
 
 /** What works on Android in this release — shown honestly in the app. */
 private val WORKS_NOW = listOf(
@@ -48,6 +59,7 @@ private val WORKS_NOW = listOf(
     "Encrypted connection that reconnects by itself",
     "Sharing this phone's battery level with your computer",
     "Sending and receiving clipboard text with paired devices",
+    "Finding this phone or a paired computer with a repeating tone",
     "Pausing Devti or removing a computer at any time",
 )
 
@@ -126,6 +138,8 @@ fun Home(core: DevtiCore, state: CoreState, onPairAnother: () -> Unit) {
                         }
                         p.status.battery?.let { BatteryBar(it.percent, voice) }
                     }
+                    if (!p.online) p.lastSeen?.let { Text("Last seen ${DateFormat.getDateTimeInstance().format(Date(it))}", color = c.textDim) }
+                    RingControls(core, p, paused = local?.paused != false)
                     GhostButton("Remove", onClick = { forget = p })
                 }
             }
@@ -173,6 +187,51 @@ fun Home(core: DevtiCore, state: CoreState, onPairAnother: () -> Unit) {
             dismissButton = { TextButton(onClick = { forget = null }) { Text("Keep") } },
         )
     }
+}
+
+@Composable
+private fun RingControls(core: DevtiCore, peer: PeerSnapshot, paused: Boolean) {
+    val scope = rememberCoroutineScope()
+    var feedback by remember(peer.info.id) { mutableStateOf("") }
+    fun update(action: () -> String) {
+        scope.launch {
+            feedback = try {
+                withContext(Dispatchers.IO) { action() }
+            } catch (e: DevtiException) {
+                e.readable()
+            }
+        }
+    }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text("Allow commands from this device, including ringing", modifier = Modifier.weight(1f), color = Devti.colors.text)
+        Switch(
+            checked = peer.permissions.commands,
+            onCheckedChange = { allow ->
+                update {
+                    core.setCommandsAccess(peer.info.id, allow)
+                    ""
+                }
+            },
+            modifier = Modifier.semantics { contentDescription = "Allow commands from ${peer.info.name}" },
+        )
+    }
+    if (peer.online && !paused) {
+        Row {
+            GhostButton("Ring device", onClick = {
+                update {
+                    core.requestRing(peer.info.id, true)
+                    "Ring request sent to ${peer.info.name}."
+                }
+            })
+            GhostButton("Stop ringing", onClick = {
+                update {
+                    core.requestRing(peer.info.id, false)
+                    "Stop request sent to ${peer.info.name}."
+                }
+            })
+        }
+    }
+    if (feedback.isNotEmpty()) Text(feedback, color = Devti.colors.textDim)
 }
 
 @Composable

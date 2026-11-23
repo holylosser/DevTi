@@ -15,7 +15,7 @@ export function DeviceActions({ peer }: { peer: PeerSnapshot }) {
     try {
       await bridge.ring(peer.info.id, !ringing);
       setRinging(!ringing);
-      if (!ringing) toast(`${peer.info.name} is ringing.`, "ok");
+      if (!ringing) toast(`Ring request sent to ${peer.info.name}.`, "ok");
     } catch (e) {
       toast(String(e instanceof Error ? e.message : e), "danger");
     }

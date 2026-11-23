@@ -390,6 +390,12 @@ impl Node {
         Ok(())
     }
 
+    /// Updates the commands grant without changing the role or other grants.
+    pub fn set_commands_access(&self, id: &DeviceId, allowed: bool) -> Result<()> {
+        self.update_access(id, |record| (record.role, Permissions { commands: allowed, ..record.permissions }))?;
+        Ok(())
+    }
+
     fn update_access(
         &self,
         id: &DeviceId,

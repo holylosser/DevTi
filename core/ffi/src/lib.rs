@@ -91,6 +91,9 @@ pub struct MobileConfig {
     pub model: Option<String>,
     pub app_version: String,
     pub discovery: bool,
+    /// Confine paired simulator nodes to this host, using separate ephemeral ports.
+    #[uniffi(default = false)]
+    pub loopback_only: bool,
 }
 
 /// A running Devti node inside the mobile app.
@@ -122,8 +125,15 @@ impl DevtiMobile {
         cfg.os_version = config.os_version;
         cfg.model = config.model;
         cfg.app_version = config.app_version;
-        cfg.discovery = config.discovery;
+        cfg.discovery = config.discovery && !config.loopback_only;
+        if config.loopback_only {
+            cfg.bind_ip = std::net::Ipv4Addr::LOCALHOST.into();
+            cfg.port = 0;
+        }
         cfg.capabilities = vec![Capability::Battery, Capability::Clipboard];
+        if cfg.platform == Platform::Android {
+            cfg.capabilities.push(Capability::FindMe);
+        }
 
         let secrets: Arc<dyn SecretStore> = Arc::new(SecretBridge(secrets));
         let node = runtime.block_on(Node::start(cfg, secrets))?;
@@ -240,6 +250,10 @@ impl DevtiMobile {
     /// Clipboard history as JSON (`ClipboardEntry[]`).
     pub fn clipboard_history_json(&self) -> String {
         serde_json::to_string(&self.node.clipboard_history().unwrap_or_default()).unwrap_or_default()
+    }
+
+    pub fn set_commands_access(&self, device_id: String, allowed: bool) -> Result<(), DevtiError> {
+        Ok(self.node.set_commands_access(&device_id.parse()?, allowed)?)
     }
 
     /// Find my device: ring `device_id` (or stop).
@@ -387,6 +401,7 @@ mod tests {
                 model: Some("Pixel 8".into()),
                 app_version: "0.1.0".into(),
                 discovery: false,
+                loopback_only: true,
             },
             Box::new(MemStore::default()),
             Box::new(Sink(events.clone())),

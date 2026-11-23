@@ -212,6 +212,6 @@ test("find my device: being rung shows a full-screen call until found", async ({
   // Ringing another device from its summary panel.
   await page.getByRole("button", { name: /Demo phone, connected/ }).click();
   await page.getByRole("button", { name: "Ring it" }).click();
-  await expect(page.getByText("Demo phone is ringing.")).toBeVisible();
+  await expect(page.getByText("Ring request sent to Demo phone.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Stop ringing" })).toBeVisible();
 });

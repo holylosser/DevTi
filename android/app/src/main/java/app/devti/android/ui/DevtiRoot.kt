@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -41,6 +43,15 @@ fun DevtiRoot(core: DevtiCore) {
     // A system-camera link can start pairing while Home is visible.
     LaunchedEffect(state.pairing) {
         if (state.pairing != null) pairing = true
+    }
+
+    state.peers.firstOrNull { it.info.id == state.ringingPeerId }?.let { peer ->
+        AlertDialog(
+            onDismissRequest = core::stopRinging,
+            title = { Text("Find my device") },
+            text = { Text("${peer.info.name} is looking for this phone.") },
+            confirmButton = { TextButton(onClick = core::stopRinging) { Text("I found it") } },
+        )
     }
 
     when {

@@ -112,6 +112,7 @@ data class CoreState(
     val nearby: List<DiscoveredDevice> = emptyList(),
     val pairing: PairingStage? = null,
     val clipboardRevision: Long = 0,
+    val ringingPeerId: String? = null,
     /** Devices removed by the other side, to tell the user once. */
     val removedNotice: String? = null,
 ) {

@@ -35,6 +35,7 @@ private class Device(name: String, kind: String, platform: String) : EventListen
             model = null,
             appVersion = "0.1.0",
             discovery = false,
+            loopbackOnly = true,
         ),
         this,
         this,
@@ -110,6 +111,7 @@ class CoreBridgeTest {
         phone.core.setBattery(57u, true)
         val hubSees = hub.waitFor("battery") { s -> s.peers.any { it.status.battery?.percent == 57 } }
         assertEquals(true, hubSees.peers.first().status.battery?.charging)
+        assertTrue("find_me" in hubSees.peers.first().info.capabilities)
 
         // Share through the actual Kotlin bindings, then read and clear the history used by the phone UI.
         val hubId = hub.state.get().local!!.info.id
@@ -126,6 +128,32 @@ class CoreBridgeTest {
         assertFailsWith<DevtiException.InvalidInput> { phone.core.sendClipboardTo(hubId, "disabled") }
         phone.core.clearClipboardHistory()
         assertTrue(Reducer.json.decodeFromString<List<ClipboardEntry>>(phone.core.clipboardHistoryJson()).isEmpty())
+
+        // A paired phone and computer can start and stop a find request in either direction.
+        phone.core.ring(hubId, true)
+        hub.waitFor("phone ringing hub") { it.ringingPeerId == phoneId }
+        phone.core.ring(hubId, false)
+        hub.waitFor("phone stopping hub") { it.ringingPeerId == null }
+        hub.core.ring(phoneId, true)
+        phone.waitFor("hub ringing phone") { it.ringingPeerId == hubId }
+        hub.core.ring(phoneId, false)
+        phone.waitFor("hub stopping phone") { it.ringingPeerId == null }
+
+        // Revoking commands mid-ring silences the phone and preserves the separate clipboard grant.
+        hub.core.ring(phoneId, true)
+        phone.waitFor("second ring") { it.ringingPeerId == hubId }
+        phone.core.setCommandsAccess(hubId, false)
+        val restricted = phone.waitFor("commands disabled") { it.hub?.permissions?.commands == false }
+        assertEquals(null, restricted.ringingPeerId)
+        assertEquals(false, restricted.hub?.permissions?.clipboard)
+        phone.core.setClipboardAccess(hubId, true)
+        val before = phone.state.get().clipboardRevision
+        hub.core.ring(phoneId, true)
+        hub.core.sendClipboardTo(phoneId, "after disabled ring")
+        // Both messages take the same ordered control stream.
+        val after = phone.waitFor("message following disabled ring") { it.clipboardRevision > before }
+        assertEquals(null, after.ringingPeerId)
+        assertEquals(false, after.hub?.permissions?.commands)
 
         // Errors arrive as typed exceptions with a readable reason.
         val bad = assertFailsWith<DevtiException.InvalidInput> { phone.core.pairWithUri("nope") }
